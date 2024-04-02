@@ -4,7 +4,15 @@ import Link from "next/link";
 import Image from "next/image";
 import { Montserrat } from "next/font/google";
 import { cn } from "@/lib/utils";
-import { LayoutDashboard } from "lucide-react";
+import {
+  ImageIcon,
+  LayoutDashboard,
+  MessageSquare,
+  MusicIcon,
+  Settings,
+  VideoIcon,
+  CodeIcon,
+} from "lucide-react";
 
 const montserrat = Montserrat({ weight: "600", subsets: ["latin"] });
 
@@ -14,6 +22,41 @@ const routes = [
     href: "/dashboard",
     color: "text-sky-500",
     icon: LayoutDashboard,
+  },
+  {
+    label: "Conversation",
+    href: "/conversation",
+    color: "text-pink-500",
+    icon: MessageSquare,
+  },
+  {
+    label: "Image Generation",
+    href: "/image-generation",
+    color: "text-orange-500",
+    icon: ImageIcon,
+  },
+  {
+    label: "Video Generation",
+    href: "/video-generation",
+    color: "text-emerald-700",
+    icon: VideoIcon,
+  },
+  {
+    label: "Music Generation",
+    href: "/music-generation",
+    color: "text-green-500",
+    icon: MusicIcon,
+  },
+  {
+    label: "Code Generation",
+    href: "/code-generation",
+    color: "text-blue-500",
+    icon: CodeIcon,
+  },
+  {
+    label: "Settings",
+    href: "/settings",
+    icon: Settings,
   },
 ];
 
@@ -31,7 +74,11 @@ const Sidebar = () => {
         </Link>
         <div className="space-y-1">
           {routes.map((route) => (
-            <Link key={route.href} href={route.href}>
+            <Link
+              key={route.href}
+              href={route.href}
+              className="text-sm group flex p-3 w-full justify-start font-medium cursor-pointer hover:text-white hover:bg-white/10 rounded-lg transition"
+            >
               <div className="flex items-center flex-1">
                 <route.icon className={cn(route.color, "h-5 w-5 mr-3")} />
                 {route.label}
