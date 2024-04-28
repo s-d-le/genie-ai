@@ -1,5 +1,9 @@
 "use client";
 
+import axios from "axios";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+
 import * as z from "zod";
 import { Heading } from "@/components/heading";
 import { MessageSquare } from "lucide-react";
@@ -10,9 +14,14 @@ import { formSchema } from "./constants";
 import { Form, FormControl, FormField, FormItem } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import openai from "openai";
 
 const ConversationPage = () => {
-  //validation
+  const router = useRouter();
+  const [messages, setMessages] = useState<openai.ChatCompletionMessage[]>([]);
+  // const [messages, setMessages] = useState<openai.ChatCompletionUserMessageParam[]>([]);
+
+  // validation with zod
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -23,7 +32,33 @@ const ConversationPage = () => {
   const isLoading = form.formState.isSubmitting;
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    console.log(values);
+    try {
+      const userMessage: openai.ChatCompletionUserMessageParam = {
+        role: "user",
+        content: values.prompt,
+      };
+
+      // posting the entire conversation to openAI for context
+      const newMessages = [...messages, userMessage];
+
+      const response = await axios.post("/api/conversation", {
+        messages: newMessages,
+      });
+
+      // all messages of the current chat add the new message in prompt
+      setMessages((current) => [
+        ...current,
+        userMessage,
+        response.data.message,
+      ]);
+
+      form.reset();
+    } catch (error) {
+      // TODO: Open Pro Modal
+      console.error(error);
+    } finally {
+      router.reload();
+    }
   };
 
   return (
@@ -68,7 +103,24 @@ const ConversationPage = () => {
             </form>
           </Form>
         </div>
-        <div className="space-y-4 mt-4">Messages content</div>
+        <div className="space-y-4 mt-4">
+          <div className="flex flex-col-reverse gap-y-4">
+            {messages.map((message, index) => {
+              return (
+                <div
+                  key={index}
+                  className={`${
+                    message.role !== "assistant" ? "text-right" : "text-left"
+                  }`}
+                >
+                  <div className="bg-gray-100 p-4 rounded-lg inline-block">
+                    {message.content}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
       </div>
     </div>
   );
