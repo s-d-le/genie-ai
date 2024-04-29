@@ -9,17 +9,24 @@ import { Heading } from "@/components/heading";
 import { MessageSquare } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod"; //installed with react-hook-form
+import { cn } from "@/lib/utils";
 
 import { formSchema } from "./constants";
 import { Form, FormControl, FormField, FormItem } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import openai from "openai";
+// Skip ts from OpenAI due to bad docs
+// import { ChatCompletionMessageParam } from "openai/resources/chat/completions";
+
+interface ChatCompletionRequestMessage {
+  role: "user" | "assistant" | "system";
+  content: string;
+  name?: string;
+}
 
 const ConversationPage = () => {
   const router = useRouter();
-  const [messages, setMessages] = useState<openai.ChatCompletionMessage[]>([]);
-  // const [messages, setMessages] = useState<openai.ChatCompletionUserMessageParam[]>([]);
+  const [messages, setMessages] = useState<ChatCompletionRequestMessage[]>([]);
 
   // validation with zod
   const form = useForm<z.infer<typeof formSchema>>({
@@ -33,7 +40,7 @@ const ConversationPage = () => {
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
-      const userMessage: openai.ChatCompletionUserMessageParam = {
+      const userMessage: ChatCompletionRequestMessage = {
         role: "user",
         content: values.prompt,
       };
@@ -41,16 +48,20 @@ const ConversationPage = () => {
       // posting the entire conversation to openAI for context
       const newMessages = [...messages, userMessage];
 
-      const response = await axios.post("/api/conversation", {
-        messages: newMessages,
-      });
+      await axios
+        .post("/api/conversation", {
+          messages: newMessages,
+        })
+        .then((res) => {
+          const response = res.data;
 
-      // all messages of the current chat add the new message in prompt
-      setMessages((current) => [
-        ...current,
-        userMessage,
-        response.data.message,
-      ]);
+          const assistantMessage: ChatCompletionRequestMessage = {
+            role: "assistant",
+            content: response.message,
+          };
+
+          setMessages([...newMessages, assistantMessage]);
+        });
 
       form.reset();
     } catch (error) {
@@ -109,16 +120,15 @@ const ConversationPage = () => {
               return (
                 <div
                   key={index}
-                  className={`${
-                    message?.role !== "assistant" ? "text-right" : "text-left"
-                  }`}
+                  className={cn(
+                    "p-8 w-full flex items-start gap-x-8 rounded-lg",
+                    message.role === "user"
+                      ? "bg-white border border-black/10"
+                      : "bg-muted"
+                  )}
                 >
-                  <div
-                    key={index}
-                    className="bg-gray-100 p-4 rounded-lg inline-block"
-                  >
-                    {message?.content}
-                  </div>
+                  {/* {message.role === "user" ? <UserAvatar /> : <BotAvatar />} */}
+                  <p className="text-sm">{message.content}</p>
                 </div>
               );
             })}
