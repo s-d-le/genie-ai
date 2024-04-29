@@ -57,7 +57,7 @@ const ConversationPage = () => {
       // TODO: Open Pro Modal
       console.error(error);
     } finally {
-      router.reload();
+      router.refresh();
     }
   };
 
@@ -110,11 +110,14 @@ const ConversationPage = () => {
                 <div
                   key={index}
                   className={`${
-                    message.role !== "assistant" ? "text-right" : "text-left"
+                    message?.role !== "assistant" ? "text-right" : "text-left"
                   }`}
                 >
-                  <div className="bg-gray-100 p-4 rounded-lg inline-block">
-                    {message.content}
+                  <div
+                    key={index}
+                    className="bg-gray-100 p-4 rounded-lg inline-block"
+                  >
+                    {message?.content}
                   </div>
                 </div>
               );
