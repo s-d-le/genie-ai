@@ -14,5 +14,3 @@ export const Empty = ({ label }: EmptyProps) => {
     </div>
   );
 };
-
-export default Empty;

@@ -15,7 +15,9 @@ import { formSchema } from "./constants";
 import { Form, FormControl, FormField, FormItem } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import Empty from "@/components/empty";
+import { Empty } from "@/components/empty";
+import { UserAvatar } from "@/components/user-avatar";
+import { BotAvatar } from "@/components/bot-avatar";
 
 // Skip ts from OpenAI due to bad docs
 // import { ChatCompletionMessageParam } from "openai/resources/chat/completions";
@@ -43,7 +45,7 @@ const ConversationPage = () => {
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
       const userMessage: ChatCompletionRequestMessage = {
-        role: "user",
+        role: "user", // user is the question asker
         content: values.prompt,
       };
 
@@ -64,7 +66,7 @@ const ConversationPage = () => {
           const response = res.data;
 
           const assistantMessage: ChatCompletionRequestMessage = {
-            role: "assistant",
+            role: "assistant", // assistant is the bot
             content: response.message,
           };
 
@@ -132,22 +134,24 @@ const ConversationPage = () => {
             <Empty label="Start a conversation" />
           )}
           <div className="flex flex-col-reverse gap-y-4">
-            {messages.map((message, index) => {
-              return (
-                <div
-                  key={index}
-                  className={cn(
-                    "p-8 w-full flex items-start gap-x-8 rounded-lg",
-                    message.role === "user"
-                      ? "bg-white border border-black/10"
-                      : "bg-muted"
-                  )}
-                >
-                  {/* {message.role === "user" ? <UserAvatar /> : <BotAvatar />} */}
-                  <p className="text-sm">{message.content}</p>
-                </div>
-              );
-            })}
+            {messages
+              .filter((message) => message.role !== "system")
+              .map((message, index) => {
+                return (
+                  <div
+                    key={index}
+                    className={cn(
+                      "p-8 w-full flex items-start gap-x-8 rounded-lg",
+                      message.role === "user"
+                        ? "bg-white border border-black/10"
+                        : "bg-muted"
+                    )}
+                  >
+                    {message.role === "user" ? <UserAvatar /> : <BotAvatar />}
+                    <p className="text-sm">{message.content}</p>
+                  </div>
+                );
+              })}
           </div>
         </div>
       </div>
