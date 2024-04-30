@@ -29,11 +29,6 @@ export async function POST(req: Request) {
       model: "gpt-3.5-turbo",
     });
 
-    // return new NextResponse(
-    //   JSON.stringify({ messages: response.choices[0].message.content }),
-    //   { headers: { "Content-Type": "application/json" } }
-    // );
-
     return NextResponse.json({ message: response.choices[0].message.content });
   } catch (error) {
     console.error(error);

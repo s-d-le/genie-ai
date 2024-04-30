@@ -6,7 +6,7 @@ import { useState } from "react";
 
 import * as z from "zod";
 import { Heading } from "@/components/heading";
-import { MessageSquare } from "lucide-react";
+import { Loader, MessageSquare } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod"; //installed with react-hook-form
 import { cn } from "@/lib/utils";
@@ -15,6 +15,8 @@ import { formSchema } from "./constants";
 import { Form, FormControl, FormField, FormItem } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import Empty from "@/components/empty";
+
 // Skip ts from OpenAI due to bad docs
 // import { ChatCompletionMessageParam } from "openai/resources/chat/completions";
 
@@ -45,8 +47,14 @@ const ConversationPage = () => {
         content: values.prompt,
       };
 
+      // Setting the tone for the conversation. Must be last in the array
+      const systemMessage: ChatCompletionRequestMessage = {
+        role: "system",
+        content: "facts, basic, important context, one liners",
+      };
+
       // posting the entire conversation to openAI for context
-      const newMessages = [...messages, userMessage];
+      const newMessages = [...messages, userMessage, systemMessage];
 
       await axios
         .post("/api/conversation", {
@@ -115,6 +123,14 @@ const ConversationPage = () => {
           </Form>
         </div>
         <div className="space-y-4 mt-4">
+          {isLoading && (
+            <div className="p-8 rounded-lg w-full flex items-center justify-center">
+              <Loader />
+            </div>
+          )}
+          {messages.length === 0 && !isLoading && (
+            <Empty label="Start a conversation" />
+          )}
           <div className="flex flex-col-reverse gap-y-4">
             {messages.map((message, index) => {
               return (

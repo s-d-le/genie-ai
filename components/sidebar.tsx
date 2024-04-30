@@ -70,7 +70,7 @@ const Sidebar = () => {
       <div className="px-3 py-2 flex-1">
         <Link href="/dashboard" className="flex items-center pl-3 mb-14">
           <div className="relative w-8 h-8 mr-4">
-            <Image fill alt="logo" src="/logo.png" />
+            <Image alt="logo" src="/logo.png" width={30} height={30} />
           </div>
           <h1 className={cn(montserrat.className, "text-2xl font-bold")}>
             Geni AI
