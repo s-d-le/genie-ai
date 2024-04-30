@@ -57,6 +57,7 @@ const ConversationPage = () => {
 
       // posting the entire conversation to openAI for context
       const newMessages = [...messages, userMessage, systemMessage];
+      console.log(newMessages);
 
       await axios
         .post("/api/conversation", {
@@ -125,15 +126,10 @@ const ConversationPage = () => {
           </Form>
         </div>
         <div className="space-y-4 mt-4">
-          {isLoading && (
-            <div className="p-8 rounded-lg w-full flex items-center justify-center">
-              <Loader />
-            </div>
-          )}
           {messages.length === 0 && !isLoading && (
             <Empty label="Start a conversation" />
           )}
-          <div className="flex flex-col-reverse gap-y-4">
+          <div className="flex flex-col gap-y-4">
             {messages
               .filter((message) => message.role !== "system")
               .map((message, index) => {
@@ -153,6 +149,11 @@ const ConversationPage = () => {
                 );
               })}
           </div>
+          {isLoading && (
+            <div className="p-8 rounded-lg w-full flex items-center justify-center">
+              <Loader />
+            </div>
+          )}
         </div>
       </div>
     </div>
