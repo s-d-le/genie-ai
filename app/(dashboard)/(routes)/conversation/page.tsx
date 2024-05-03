@@ -30,7 +30,7 @@ interface ChatCompletionRequestMessage {
 
 const ConversationPage = () => {
   const router = useRouter();
-  // const [messages, setMessages] = useState<ChatCompletionRequestMessage[]>([]);
+  const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState("");
 
   // validation with zod
@@ -43,25 +43,13 @@ const ConversationPage = () => {
 
   const isLoading = form.formState.isSubmitting;
 
+  /// function to call the openai router and process the streaming response
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    const userMessage: ChatCompletionRequestMessage = {
-      role: "user", // user is the question asker
-      content: values.prompt,
-    };
-
-    // Setting the tone for the conversation. Must be last in the array
-    const systemMessage: ChatCompletionRequestMessage = {
-      role: "system",
-      content: "facts, basic, important context, one liners",
-    };
-
-    // posting the entire conversation to openAI for context
-    const newMessages = [answer, userMessage, systemMessage];
-
+    /// call the route
     const response: any = await fetch("/api/conversation", {
       method: "POST",
       body: JSON.stringify({
-        messages: newMessages,
+        question: values.prompt,
       }),
       next: { revalidate: 0 },
     });
