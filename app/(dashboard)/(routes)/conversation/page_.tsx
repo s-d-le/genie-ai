@@ -30,8 +30,7 @@ interface ChatCompletionRequestMessage {
 
 const ConversationPage = () => {
   const router = useRouter();
-  // const [messages, setMessages] = useState<ChatCompletionRequestMessage[]>([]);
-  const [answer, setAnswer] = useState("");
+  const [messages, setMessages] = useState<ChatCompletionRequestMessage[]>([]);
 
   // validation with zod
   const form = useForm<z.infer<typeof formSchema>>({
@@ -44,41 +43,43 @@ const ConversationPage = () => {
   const isLoading = form.formState.isSubmitting;
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    const userMessage: ChatCompletionRequestMessage = {
-      role: "user", // user is the question asker
-      content: values.prompt,
-    };
+    try {
+      const userMessage: ChatCompletionRequestMessage = {
+        role: "user", // user is the question asker
+        content: values.prompt,
+      };
 
-    // Setting the tone for the conversation. Must be last in the array
-    const systemMessage: ChatCompletionRequestMessage = {
-      role: "system",
-      content: "facts, basic, important context, one liners",
-    };
+      // Setting the tone for the conversation. Must be last in the array
+      const systemMessage: ChatCompletionRequestMessage = {
+        role: "system",
+        content: "facts, basic, important context, one liners",
+      };
 
-    // posting the entire conversation to openAI for context
-    const newMessages = [answer, userMessage, systemMessage];
+      // posting the entire conversation to openAI for context
+      const newMessages = [...messages, userMessage, systemMessage];
+      console.log(newMessages);
 
-    const response: any = await fetch("/api/conversation", {
-      method: "POST",
-      body: JSON.stringify({
-        messages: newMessages,
-      }),
-      next: { revalidate: 0 },
-    });
+      await axios
+        .post("/api/conversation", {
+          messages: newMessages,
+        })
+        .then((res) => {
+          const response = res.data;
 
-    let resptext = "";
-    const reader = response.body
-      .pipeThrough(new TextDecoderStream())
-      .getReader();
+          const assistantMessage: ChatCompletionRequestMessage = {
+            role: "assistant", // assistant is the bot
+            content: response.message,
+          };
 
-    /// procees the stream
-    while (true) {
-      const { value, done } = await reader.read();
-      if (done) {
-        break;
-      }
-      resptext += value;
-      setAnswer(resptext);
+          setMessages([...newMessages, assistantMessage]);
+        });
+
+      form.reset();
+    } catch (error) {
+      // TODO: Open Pro Modal
+      console.error(error);
+    } finally {
+      router.refresh();
     }
   };
 
@@ -125,7 +126,7 @@ const ConversationPage = () => {
           </Form>
         </div>
         <div className="space-y-4 mt-4">
-          {/* {messages.length === 0 && !isLoading && (
+          {messages.length === 0 && !isLoading && (
             <Empty label="Start a conversation" />
           )}
           <div className="flex flex-col gap-y-4">
@@ -147,9 +148,7 @@ const ConversationPage = () => {
                   </div>
                 );
               })}
-              
-          </div> */}
-          <p>{answer}</p>
+          </div>
           {isLoading && (
             <div className="p-8 rounded-lg w-full flex items-center justify-center">
               <Loader />
