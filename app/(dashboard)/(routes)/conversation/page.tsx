@@ -18,6 +18,8 @@ import { Button } from "@/components/ui/button";
 import { Empty } from "@/components/empty";
 import { UserAvatar } from "@/components/user-avatar";
 import { BotAvatar } from "@/components/bot-avatar";
+import { readStreamableValue } from "ai/rsc";
+import { Message, continueConversation } from "./actions";
 
 // Skip ts from OpenAI due to bad docs
 // import { ChatCompletionMessageParam } from "openai/resources/chat/completions";
@@ -30,8 +32,7 @@ interface ChatCompletionRequestMessage {
 
 const ConversationPage = () => {
   const router = useRouter();
-  const [question, setQuestion] = useState("");
-  const [answer, setAnswer] = useState("");
+  const [conversation, setConversation] = useState<Message[]>([]);
 
   // validation with zod
   const form = useForm<z.infer<typeof formSchema>>({
@@ -45,28 +46,20 @@ const ConversationPage = () => {
 
   /// function to call the openai router and process the streaming response
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    /// call the route
-    const response: any = await fetch("/api/conversation", {
-      method: "POST",
-      body: JSON.stringify({
-        question: values.prompt,
-      }),
-      next: { revalidate: 0 },
-    });
+    const { messages, newMessage } = await continueConversation([
+      ...conversation,
+      { role: "user", content: values.prompt },
+    ]);
 
-    let resptext = "";
-    const reader = response.body
-      .pipeThrough(new TextDecoderStream())
-      .getReader();
+    let textContent = "";
 
-    /// procees the stream
-    while (true) {
-      const { value, done } = await reader.read();
-      if (done) {
-        break;
-      }
-      resptext += value;
-      setAnswer(resptext);
+    for await (const delta of readStreamableValue(newMessage)) {
+      textContent = `${textContent}${delta}`;
+
+      setConversation([
+        ...messages,
+        { role: "assistant", content: textContent },
+      ]);
     }
   };
 
@@ -137,7 +130,13 @@ const ConversationPage = () => {
               })}
               
           </div> */}
-          <p>{answer}</p>
+          <div>
+            {conversation.map((message, index) => (
+              <div key={index}>
+                {message.role}: {message.content}
+              </div>
+            ))}
+          </div>
           {isLoading && (
             <div className="p-8 rounded-lg w-full flex items-center justify-center">
               <Loader />
