@@ -19,6 +19,7 @@ import { UserAvatar } from "@/components/user-avatar";
 import { BotAvatar } from "@/components/bot-avatar";
 import { readStreamableValue } from "ai/rsc";
 import { IMessage, continueConversation } from "./actions";
+import { auth } from "@clerk/nextjs";
 
 const ConversationPage = () => {
   const router = useRouter();
@@ -36,27 +37,20 @@ const ConversationPage = () => {
 
   /// function to call the openai and process the streaming response
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    try {
-      const { messages, newMessage } = await continueConversation([
-        ...conversation,
-        { role: "user", content: values.prompt },
+    const { messages, newMessage } = await continueConversation([
+      ...conversation,
+      { role: "user", content: values.prompt },
+    ]);
+
+    let textContent = "";
+
+    for await (const delta of readStreamableValue(newMessage)) {
+      textContent = `${textContent}${delta}`;
+
+      setConversation([
+        ...messages,
+        { role: "assistant", content: textContent },
       ]);
-
-      let textContent = "";
-
-      for await (const delta of readStreamableValue(newMessage)) {
-        textContent = `${textContent}${delta}`;
-
-        setConversation([
-          ...messages,
-          { role: "assistant", content: textContent },
-        ]);
-      }
-    } catch (error) {
-      // TODO: Open Pro Modal
-      console.error(error);
-    } finally {
-      router.refresh();
     }
   };
 

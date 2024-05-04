@@ -11,26 +11,20 @@ export interface IMessage {
   content: string;
 }
 
-export async function continueConversation(history: IMessage[]): Promise<
-  | NextResponse<unknown>
-  | {
-      messages?: IMessage[];
-      newMessage?: StreamableValue<any, any>;
-    }
-> {
+export async function continueConversation(history: IMessage[]) {
   "use server";
 
+  const { userId } = auth();
+
+  if (!userId) {
+    return new NextResponse("Unauthorized", { status: 500 });
+  }
+
+  if (!history) {
+    return new NextResponse("Message is required", { status: 500 });
+  }
+
   try {
-    const { userId } = auth();
-
-    if (!userId) {
-      return new NextResponse("Unauthorized", { status: 500 });
-    }
-
-    if (!history) {
-      return new NextResponse("Message is required", { status: 500 });
-    }
-
     const stream = createStreamableValue();
 
     (async () => {
@@ -52,6 +46,7 @@ export async function continueConversation(history: IMessage[]): Promise<
       newMessage: stream.value,
     };
   } catch (error) {
+    // Open pro modal
     console.error(error);
     return new NextResponse("Internal Server Error", { status: 500 });
   }
