@@ -46,7 +46,6 @@ export async function continueConversation(history: IMessage[]) {
       newMessage: stream.value,
     };
   } catch (error) {
-    // Open pro modal
     console.error(error);
     return new NextResponse("Internal Server Error", { status: 500 });
   }

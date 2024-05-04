@@ -37,20 +37,29 @@ const ConversationPage = () => {
 
   /// function to call the openai and process the streaming response
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    const { messages, newMessage } = await continueConversation([
-      ...conversation,
-      { role: "user", content: values.prompt },
-    ]);
-
-    let textContent = "";
-
-    for await (const delta of readStreamableValue(newMessage)) {
-      textContent = `${textContent}${delta}`;
-
-      setConversation([
-        ...messages,
-        { role: "assistant", content: textContent },
+    try {
+      const { messages, newMessage } = await continueConversation([
+        ...conversation,
+        { role: "user", content: values.prompt },
       ]);
+
+      let textContent = "";
+
+      for await (const delta of readStreamableValue(newMessage)) {
+        textContent = `${textContent}${delta}`;
+
+        setConversation([
+          ...messages,
+          { role: "assistant", content: textContent },
+        ]);
+      }
+
+      form.reset();
+    } catch (error) {
+      // TODO: Open Pro Modal
+      console.error(error);
+    } finally {
+      router.refresh();
     }
   };
 

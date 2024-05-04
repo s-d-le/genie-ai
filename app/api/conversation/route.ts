@@ -34,7 +34,7 @@ export async function POST(req: Request) {
     messages: [
       {
         role: "user",
-        content: "give a system design of an ecommerce react app",
+        content: messages,
       },
     ],
     model: "gpt-3.5-turbo",
