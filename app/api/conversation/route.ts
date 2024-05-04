@@ -1,4 +1,6 @@
+import { openai } from "@ai-sdk/openai";
 import { OpenAIStream, StreamingTextResponse } from "ai";
+import { createStreamableValue } from "ai/rsc";
 import OpenAI from "openai";
 
 // Set the runtime to edge for best performance

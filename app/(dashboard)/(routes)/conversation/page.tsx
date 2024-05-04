@@ -1,6 +1,5 @@
 "use client";
 
-import axios from "axios";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -19,20 +18,11 @@ import { Empty } from "@/components/empty";
 import { UserAvatar } from "@/components/user-avatar";
 import { BotAvatar } from "@/components/bot-avatar";
 import { readStreamableValue } from "ai/rsc";
-import { Message, continueConversation } from "./actions";
-
-// Skip ts from OpenAI due to bad docs
-// import { ChatCompletionMessageParam } from "openai/resources/chat/completions";
-
-interface ChatCompletionRequestMessage {
-  role: "user" | "assistant" | "system";
-  content: string;
-  name?: string;
-}
+import { IMessage, continueConversation } from "./actions";
 
 const ConversationPage = () => {
   const router = useRouter();
-  const [conversation, setConversation] = useState<Message[]>([]);
+  const [conversation, setConversation] = useState<IMessage[]>([]);
 
   // validation with zod
   const form = useForm<z.infer<typeof formSchema>>({
@@ -44,22 +34,29 @@ const ConversationPage = () => {
 
   const isLoading = form.formState.isSubmitting;
 
-  /// function to call the openai router and process the streaming response
+  /// function to call the openai and process the streaming response
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    const { messages, newMessage } = await continueConversation([
-      ...conversation,
-      { role: "user", content: values.prompt },
-    ]);
-
-    let textContent = "";
-
-    for await (const delta of readStreamableValue(newMessage)) {
-      textContent = `${textContent}${delta}`;
-
-      setConversation([
-        ...messages,
-        { role: "assistant", content: textContent },
+    try {
+      const { messages, newMessage } = await continueConversation([
+        ...conversation,
+        { role: "user", content: values.prompt },
       ]);
+
+      let textContent = "";
+
+      for await (const delta of readStreamableValue(newMessage)) {
+        textContent = `${textContent}${delta}`;
+
+        setConversation([
+          ...messages,
+          { role: "assistant", content: textContent },
+        ]);
+      }
+    } catch (error) {
+      // TODO: Open Pro Modal
+      console.error(error);
+    } finally {
+      router.refresh();
     }
   };
 
@@ -106,36 +103,26 @@ const ConversationPage = () => {
           </Form>
         </div>
         <div className="space-y-4 mt-4">
-          {/* {messages.length === 0 && !isLoading && (
+          {conversation.length === 0 && !isLoading && (
             <Empty label="Start a conversation" />
           )}
           <div className="flex flex-col gap-y-4">
-            {messages
-              .filter((message) => message.role !== "system")
-              .map((message, index) => {
-                return (
-                  <div
-                    key={index}
-                    className={cn(
-                      "p-8 w-full flex items-start gap-x-8 rounded-lg",
-                      message.role === "user"
-                        ? "bg-white border border-black/10"
-                        : "bg-muted"
-                    )}
-                  >
-                    {message.role === "user" ? <UserAvatar /> : <BotAvatar />}
-                    <p className="text-sm">{message.content}</p>
-                  </div>
-                );
-              })}
-              
-          </div> */}
-          <div>
-            {conversation.map((message, index) => (
-              <div key={index}>
-                {message.role}: {message.content}
-              </div>
-            ))}
+            {conversation.map((message, index) => {
+              return (
+                <div
+                  key={index}
+                  className={cn(
+                    "p-8 w-full flex items-start gap-x-8 rounded-lg",
+                    message.role === "user"
+                      ? "bg-white border border-black/10"
+                      : "bg-muted"
+                  )}
+                >
+                  {message.role === "user" ? <UserAvatar /> : <BotAvatar />}
+                  <p className="text-sm">{message.content}</p>
+                </div>
+              );
+            })}
           </div>
           {isLoading && (
             <div className="p-8 rounded-lg w-full flex items-center justify-center">

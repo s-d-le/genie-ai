@@ -4,12 +4,12 @@ import { streamText } from "ai";
 import { openai } from "@ai-sdk/openai";
 import { createStreamableValue } from "ai/rsc";
 
-export interface Message {
+export interface IMessage {
   role: "user" | "assistant";
   content: string;
 }
 
-export async function continueConversation(history: Message[]) {
+export async function continueConversation(history: IMessage[]) {
   "use server";
 
   const stream = createStreamableValue();
@@ -17,8 +17,7 @@ export async function continueConversation(history: Message[]) {
   (async () => {
     const { textStream } = await streamText({
       model: openai("gpt-3.5-turbo"),
-      system:
-        "You are a dude that doesn't drop character until the DVD commentary.",
+      system: "Facts, concise, important context, one liners",
       messages: history,
     });
 
