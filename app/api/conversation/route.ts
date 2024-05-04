@@ -1,6 +1,6 @@
-import { openai } from "@ai-sdk/openai";
+import { auth } from "@clerk/nextjs";
+import { NextResponse } from "next/server";
 import { OpenAIStream, StreamingTextResponse } from "ai";
-import { createStreamableValue } from "ai/rsc";
 import OpenAI from "openai";
 
 // Set the runtime to edge for best performance
@@ -8,28 +8,46 @@ export const config = {
   runtime: "edge",
 };
 
-export async function POST(request: any, response: any) {
-  const { question } = await request.json();
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
 
-  // Fetch the response from the OpenAI API
-  const openai = new OpenAI({
-    apiKey: process.env.NEXT_PUBLIC_OPENAI_KEY,
-  });
+export async function POST(req: Request) {
+  const { userId } = auth();
+  const body = await req.json();
+  const { messages } = body;
+  console.log(body);
 
-  const responseFromOpenAI = await openai.chat.completions.create({
+  if (!userId) {
+    return new NextResponse("Unauthorized", { status: 401 });
+  }
+
+  if (!openai.apiKey) {
+    return new NextResponse("OpenAI API key not configured", { status: 500 });
+  }
+
+  if (!messages) {
+    return new NextResponse("Message is required", { status: 400 });
+  }
+
+  const response = await openai.chat.completions.create({
+    messages: [
+      {
+        role: "user",
+        content: "give a system design of an ecommerce react app",
+      },
+    ],
     model: "gpt-3.5-turbo",
-    temperature: 0,
-    top_p: 1,
-    messages: [{ role: "user", content: question }],
     stream: true,
   });
 
   try {
     // Convert the response into a friendly text-stream
-    const stream = OpenAIStream(responseFromOpenAI);
+    const stream = OpenAIStream(response);
     // Respond with the stream
     return new StreamingTextResponse(stream);
   } catch (error) {
-    return response.send(400).send(error);
+    console.error(error);
+    return new NextResponse("Internal Server Error", { status: 500 });
   }
 }

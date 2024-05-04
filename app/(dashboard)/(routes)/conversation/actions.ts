@@ -2,34 +2,57 @@
 
 import { streamText } from "ai";
 import { openai } from "@ai-sdk/openai";
-import { createStreamableValue } from "ai/rsc";
+import { createStreamableValue, StreamableValue } from "ai/rsc";
+import { auth } from "@clerk/nextjs";
+import { NextResponse } from "next/server";
 
 export interface IMessage {
   role: "user" | "assistant";
   content: string;
 }
 
-export async function continueConversation(history: IMessage[]) {
+export async function continueConversation(history: IMessage[]): Promise<
+  | NextResponse<unknown>
+  | {
+      messages?: IMessage[];
+      newMessage?: StreamableValue<any, any>;
+    }
+> {
   "use server";
 
-  const stream = createStreamableValue();
+  try {
+    const { userId } = auth();
 
-  (async () => {
-    const { textStream } = await streamText({
-      model: openai("gpt-3.5-turbo"),
-      system: "Facts, concise, important context, one liners",
-      messages: history,
-    });
-
-    for await (const text of textStream) {
-      stream.update(text);
+    if (!userId) {
+      return new NextResponse("Unauthorized", { status: 500 });
     }
 
-    stream.done();
-  })();
+    if (!history) {
+      return new NextResponse("Message is required", { status: 500 });
+    }
 
-  return {
-    messages: history,
-    newMessage: stream.value,
-  };
+    const stream = createStreamableValue();
+
+    (async () => {
+      const { textStream } = await streamText({
+        model: openai("gpt-3.5-turbo"),
+        system: "Facts, concise, important context, one liners",
+        messages: history,
+      });
+
+      for await (const text of textStream) {
+        stream.update(text);
+      }
+
+      stream.done();
+    })();
+
+    return {
+      messages: history,
+      newMessage: stream.value,
+    };
+  } catch (error) {
+    console.error(error);
+    return new NextResponse("Internal Server Error", { status: 500 });
+  }
 }
