@@ -1,6 +1,6 @@
 import { auth } from "@clerk/nextjs";
 import { NextResponse } from "next/server";
-import { OpenAIStream, StreamingTextResponse } from "ai";
+import { OpenAIStream, StreamingTextResponse, streamText } from "ai";
 import OpenAI from "openai";
 
 // Set the runtime to edge for best performance
@@ -34,18 +34,27 @@ export async function POST(req: Request) {
     messages: [
       {
         role: "user",
-        content: "give a system design of an ecommerce react app",
+        content: "Senior",
       },
     ],
+    temperature: 0,
+    top_p: 1,
     model: "gpt-3.5-turbo",
     stream: true,
   });
 
   try {
     // Convert the response into a friendly text-stream
-    const stream = OpenAIStream(response);
+    const stream = OpenAIStream(response, {
+      onText: async (text: string) => {
+        // This callback is called when the stream completes
+        // You can use this to save the final completion to your database
+        // await saveCompletionToDatabase(completion)
+        console.log(text);
+      },
+    });
     // Respond with the stream
-    return new NextResponse(stream);
+    return new StreamingTextResponse(stream);
   } catch (error) {
     console.error(error);
     return new NextResponse("Internal Server Error", { status: 500 });

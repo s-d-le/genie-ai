@@ -19,11 +19,7 @@ import { Empty } from "@/components/empty";
 import { UserAvatar } from "@/components/user-avatar";
 import { BotAvatar } from "@/components/bot-avatar";
 
-import { OpenAIStream, StreamingTextResponse } from "ai";
-import Response from "node-fetch";
-
-// Skip ts from OpenAI due to bad docs
-// import { ChatCompletionMessageParam } from "openai/resources/chat/completions";
+import { useCompletion } from "ai/react";
 
 interface ChatCompletionRequestMessage {
   role: "user" | "assistant" | "system";
@@ -80,6 +76,7 @@ const ConversationPage = () => {
       if (readResult?.done) {
         break;
       }
+      // const str = decoder.decode(readResult?.value);
       const value = readResult?.value;
       if (value) {
         resptext += value;
