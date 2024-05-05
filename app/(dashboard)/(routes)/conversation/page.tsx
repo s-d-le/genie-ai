@@ -19,6 +19,9 @@ import { Empty } from "@/components/empty";
 import { UserAvatar } from "@/components/user-avatar";
 import { BotAvatar } from "@/components/bot-avatar";
 
+import { OpenAIStream, StreamingTextResponse } from "ai";
+import Response from "node-fetch";
+
 // Skip ts from OpenAI due to bad docs
 // import { ChatCompletionMessageParam } from "openai/resources/chat/completions";
 
@@ -58,7 +61,7 @@ const ConversationPage = () => {
     // posting the entire conversation to openAI for context
     const newMessages = [answer, userMessage, systemMessage];
 
-    const response: any = await fetch("/api/conversation", {
+    const response: Response = await fetch("/api/conversation", {
       method: "POST",
       body: JSON.stringify({
         messages: newMessages,
@@ -68,17 +71,20 @@ const ConversationPage = () => {
 
     let resptext = "";
     const reader = response.body
-      .pipeThrough(new TextDecoderStream())
+      ?.pipeThrough(new TextDecoderStream())
       .getReader();
 
     /// procees the stream
     while (true) {
-      const { value, done } = await reader.read();
-      if (done) {
+      const readResult = await reader?.read();
+      if (readResult?.done) {
         break;
       }
-      resptext += value;
-      setAnswer(resptext);
+      const value = readResult?.value;
+      if (value) {
+        resptext += value;
+        setAnswer(resptext);
+      }
     }
   };
 
