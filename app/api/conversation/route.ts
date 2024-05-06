@@ -16,7 +16,6 @@ export async function POST(req: Request) {
   const { userId } = auth();
   const body = await req.json();
   const { messages } = body;
-  console.log(body);
 
   if (!userId) {
     return new NextResponse("Unauthorized", { status: 401 });
@@ -31,19 +30,24 @@ export async function POST(req: Request) {
   }
 
   const response = await openai.chat.completions.create({
-    messages: [
-      {
-        role: "user",
-        content: messages,
-      },
-    ],
+    messages,
+    temperature: 0,
+    top_p: 1,
     model: "gpt-3.5-turbo",
     stream: true,
   });
 
   try {
     // Convert the response into a friendly text-stream
-    const stream = OpenAIStream(response);
+    const stream = OpenAIStream(response, {
+      // onCompletion
+      onText: async (text: string) => {
+        // This callback is called when the stream completes
+        // You can use this to save the final completion to your database
+        // await saveCompletionToDatabase(completion)
+      },
+    });
+
     // Respond with the stream
     return new StreamingTextResponse(stream);
   } catch (error) {

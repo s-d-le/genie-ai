@@ -17,13 +17,16 @@ import { Button } from "@/components/ui/button";
 import { Empty } from "@/components/empty";
 import { UserAvatar } from "@/components/user-avatar";
 import { BotAvatar } from "@/components/bot-avatar";
-import { readStreamableValue } from "ai/rsc";
-import { IMessage, continueConversation } from "./actions";
-import { auth } from "@clerk/nextjs";
+
+interface IMessage {
+  role: "user" | "assistant" | "system";
+  content: string;
+  name?: string;
+}
 
 const ConversationPage = () => {
   const router = useRouter();
-  const [conversation, setConversation] = useState<IMessage[]>([]);
+  const [messages, setMessages] = useState<IMessage[]>([]);
 
   // validation with zod
   const form = useForm<z.infer<typeof formSchema>>({
@@ -37,29 +40,50 @@ const ConversationPage = () => {
 
   /// function to call the openai and process the streaming response
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    try {
-      const { messages, newMessage } = await continueConversation([
-        ...conversation,
-        { role: "user", content: values.prompt },
-      ]);
+    const userMessage: IMessage = {
+      role: "user", // user is the question asker
+      content: values.prompt,
+    };
 
-      let textContent = "";
+    // Setting the tone for the conversation. Must be last in the array
+    const systemMessage: IMessage = {
+      role: "system",
+      content: "facts, basic, important context, one liners",
+    };
 
-      for await (const delta of readStreamableValue(newMessage)) {
-        textContent = `${textContent}${delta}`;
+    // posting the entire conversation to openAI for context
+    const newMessages: IMessage[] = [...messages, userMessage, systemMessage];
 
-        setConversation([
+    const response: Response = await fetch("/api/conversation", {
+      method: "POST",
+      body: JSON.stringify({
+        messages: newMessages,
+      }),
+      next: { revalidate: 0 },
+    });
+
+    let resptext = "";
+    const reader = response.body
+      ?.pipeThrough(new TextDecoderStream())
+      .getReader();
+
+    /// procees the stream
+    while (true) {
+      const readResult = await reader?.read();
+      if (readResult?.done) {
+        router.refresh();
+        break;
+      }
+      const value = readResult?.value;
+
+      if (value) {
+        resptext += value;
+        setMessages([
+          userMessage,
+          { role: "assistant", content: resptext },
           ...messages,
-          { role: "assistant", content: textContent },
         ]);
       }
-
-      form.reset();
-    } catch (error) {
-      // TODO: Open Pro Modal
-      console.error(error);
-    } finally {
-      router.refresh();
     }
   };
 
@@ -106,26 +130,28 @@ const ConversationPage = () => {
           </Form>
         </div>
         <div className="space-y-4 mt-4">
-          {conversation.length === 0 && !isLoading && (
+          {messages.length === 0 && !isLoading && (
             <Empty label="Start a conversation" />
           )}
           <div className="flex flex-col gap-y-4">
-            {conversation.map((message, index) => {
-              return (
-                <div
-                  key={index}
-                  className={cn(
-                    "p-8 w-full flex items-start gap-x-8 rounded-lg",
-                    message.role === "user"
-                      ? "bg-white border border-black/10"
-                      : "bg-muted"
-                  )}
-                >
-                  {message.role === "user" ? <UserAvatar /> : <BotAvatar />}
-                  <p className="text-sm">{message.content}</p>
-                </div>
-              );
-            })}
+            {messages
+              .filter((message) => message.role !== "system")
+              .map((message, index) => {
+                return (
+                  <div
+                    key={index}
+                    className={cn(
+                      "p-8 w-full flex items-start gap-x-8 rounded-lg",
+                      message.role === "user"
+                        ? "bg-white border border-black/10"
+                        : "bg-muted"
+                    )}
+                  >
+                    {message.role === "user" ? <UserAvatar /> : <BotAvatar />}
+                    <p className="text-sm">{message.content}</p>
+                  </div>
+                );
+              })}
           </div>
           {isLoading && (
             <div className="p-8 rounded-lg w-full flex items-center justify-center">
