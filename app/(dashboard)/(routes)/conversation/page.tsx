@@ -1,6 +1,5 @@
 "use client";
 
-import axios from "axios";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -19,9 +18,7 @@ import { Empty } from "@/components/empty";
 import { UserAvatar } from "@/components/user-avatar";
 import { BotAvatar } from "@/components/bot-avatar";
 
-import { useCompletion } from "ai/react";
-
-interface ChatCompletionRequestMessage {
+interface IMessage {
   role: "user" | "assistant" | "system";
   content: string;
   name?: string;
@@ -29,7 +26,7 @@ interface ChatCompletionRequestMessage {
 
 const ConversationPage = () => {
   const router = useRouter();
-  // const [messages, setMessages] = useState<ChatCompletionRequestMessage[]>([]);
+  const [messages, setMessages] = useState<IMessage[]>([]);
   const [answer, setAnswer] = useState("");
 
   // validation with zod
@@ -43,19 +40,19 @@ const ConversationPage = () => {
   const isLoading = form.formState.isSubmitting;
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    const userMessage: ChatCompletionRequestMessage = {
+    const userMessage: IMessage = {
       role: "user", // user is the question asker
       content: values.prompt,
     };
 
     // Setting the tone for the conversation. Must be last in the array
-    const systemMessage: ChatCompletionRequestMessage = {
+    const systemMessage: IMessage = {
       role: "system",
       content: "facts, basic, important context, one liners",
     };
 
     // posting the entire conversation to openAI for context
-    const newMessages = [answer, userMessage, systemMessage];
+    const newMessages: IMessage[] = [...messages, userMessage, systemMessage];
 
     const response: Response = await fetch("/api/conversation", {
       method: "POST",
@@ -70,19 +67,21 @@ const ConversationPage = () => {
       ?.pipeThrough(new TextDecoderStream())
       .getReader();
 
-    console.log(reader);
     /// procees the stream
     while (true) {
       const readResult = await reader?.read();
       if (readResult?.done) {
         break;
       }
-      // const str = decoder.decode(readResult?.value);
       const value = readResult?.value;
 
       if (value) {
         resptext += value;
-        setAnswer(resptext);
+        setMessages([
+          userMessage,
+          { role: "assistant", content: resptext },
+          ...messages,
+        ]);
       }
     }
   };
@@ -130,7 +129,7 @@ const ConversationPage = () => {
           </Form>
         </div>
         <div className="space-y-4 mt-4">
-          {/* {messages.length === 0 && !isLoading && (
+          {messages.length === 0 && !isLoading && (
             <Empty label="Start a conversation" />
           )}
           <div className="flex flex-col gap-y-4">
@@ -152,9 +151,7 @@ const ConversationPage = () => {
                   </div>
                 );
               })}
-              
-          </div> */}
-          <p>{answer}</p>
+          </div>
           {isLoading && (
             <div className="p-8 rounded-lg w-full flex items-center justify-center">
               <Loader />

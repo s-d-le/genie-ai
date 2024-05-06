@@ -1,6 +1,6 @@
 import { auth } from "@clerk/nextjs";
 import { NextResponse } from "next/server";
-import { OpenAIStream, StreamingTextResponse, streamText } from "ai";
+import { OpenAIStream, StreamingTextResponse } from "ai";
 import OpenAI from "openai";
 
 // Set the runtime to edge for best performance
@@ -16,7 +16,6 @@ export async function POST(req: Request) {
   const { userId } = auth();
   const body = await req.json();
   const { messages } = body;
-  console.log(body);
 
   if (!userId) {
     return new NextResponse("Unauthorized", { status: 401 });
@@ -31,12 +30,7 @@ export async function POST(req: Request) {
   }
 
   const response = await openai.chat.completions.create({
-    messages: [
-      {
-        role: "user",
-        content: "earth size",
-      },
-    ],
+    messages,
     temperature: 0,
     top_p: 1,
     model: "gpt-3.5-turbo",
@@ -53,6 +47,7 @@ export async function POST(req: Request) {
         // await saveCompletionToDatabase(completion)
       },
     });
+
     // Respond with the stream
     return new StreamingTextResponse(stream);
   } catch (error) {
