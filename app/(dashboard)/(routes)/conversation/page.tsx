@@ -70,6 +70,7 @@ const ConversationPage = () => {
       ?.pipeThrough(new TextDecoderStream())
       .getReader();
 
+    console.log(reader);
     /// procees the stream
     while (true) {
       const readResult = await reader?.read();
@@ -78,6 +79,7 @@ const ConversationPage = () => {
       }
       // const str = decoder.decode(readResult?.value);
       const value = readResult?.value;
+
       if (value) {
         resptext += value;
         setAnswer(resptext);

@@ -34,7 +34,7 @@ export async function POST(req: Request) {
     messages: [
       {
         role: "user",
-        content: "Senior",
+        content: "earth size",
       },
     ],
     temperature: 0,
@@ -46,11 +46,11 @@ export async function POST(req: Request) {
   try {
     // Convert the response into a friendly text-stream
     const stream = OpenAIStream(response, {
+      // onCompletion
       onText: async (text: string) => {
         // This callback is called when the stream completes
         // You can use this to save the final completion to your database
         // await saveCompletionToDatabase(completion)
-        console.log(text);
       },
     });
     // Respond with the stream
